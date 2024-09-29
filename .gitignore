@@ -3,4 +3,4 @@ crawler/sketchfab/__pycache__/*.pyc
 
 crawler/sketchfab/data/
 
-crawler\sketchfab\get_url.py
+crawler/sketchfab/my_account.py
