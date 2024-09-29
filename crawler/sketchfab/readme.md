@@ -23,4 +23,4 @@
 
 1. 运行 `get_url.py`，将爬取的模型url保存在 `urls.txt`中；
 2. 运行 `crawler.py`，下载每个url对应的模型；
-3. 下载好的模型会保存在
+3. 下载好的模型会保存在 `crawler\sketchfab\data`中。
