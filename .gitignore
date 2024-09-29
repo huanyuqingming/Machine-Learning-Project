@@ -1,0 +1,4 @@
+crawler/sketchfab/__pycache__
+crawler/sketchfab/__pycache__/*.pyc
+
+crawler/sketchfab/data/
