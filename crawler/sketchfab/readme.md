@@ -15,9 +15,14 @@
 如果报错：chromedriver 版本不匹配，则按照报错信息的指引，去官网上下载对应版本的 chromedriver 即可。
 
 # 配置chromedriver（不然get_url.py跑不了）
+- Windows
+    1. 下载chrome；
+    2. 将该目录下的chromedriver.exe复制到chrome安装目录的Application目录下，如 `C:/Program Files/Google/Chrome/Application/chromedriver.exe`。
 
-1. 下载chrome；
-2. 将该目录下的chromedriver.exe复制到chrome安装目录的Application目录下，如 `C:/Program Files/Google/Chrome/Application/chromedriver.exe`。
+- Ubuntu
+    1. 下载chrome；
+    2. 将Linux的chromedriver复制到`/usr/bin/`目录下，并把`get_url.py`文件中的`--chromedriver`路径参数的默认改为`/usr/bin/chromedriver`。
+    3. 各种Linux版的谷歌驱动[下载地址](https://googlechromelabs.github.io/chrome-for-testing/)。
 
 # 如何爬
 
