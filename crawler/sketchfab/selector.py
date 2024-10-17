@@ -13,7 +13,7 @@ import time
 import keyboard
 
 def filter_urls(args):
-    part_number = 1 #自己设置，1-12
+    part_number = 1 #自己设置，1-13
     input_file_path = f"{args.input_file_prefix}_part_{part_number}.txt"
     output_file_path = f"{args.output_file_prefix}_part_{part_number}.txt"
 
