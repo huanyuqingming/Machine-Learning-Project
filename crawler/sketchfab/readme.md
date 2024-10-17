@@ -24,7 +24,7 @@
 
 # 如何筛选
 
-1. 修改selector的读取和写入文件路径以及你的edgedriver路径
+1. 修改selector的edgedriver路径
 2. 运行程序，y保留n舍去，不用按enter确认
 
 # 如何下载
