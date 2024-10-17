@@ -1,15 +1,17 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import os
 import time
 import random
 import argparse
+from my_account import EMAIL, PASSWORD
 
 def monitorMouseClicks(driver):
     # 设置鼠标点击监听器
@@ -63,78 +65,121 @@ def clickBlankPosition(driver):
     except Exception as e:
         print(f"Error while clicking blank position: {e}")
 
-def pressDownKey(driver, args):
-    # 自动持续点击向下键
-    try:
-        clickBlankPosition(driver)
-        actions = ActionChains(driver)
-        start_time = time.time()
-        while True:
-            actions.send_keys(Keys.ARROW_DOWN).perform()
-            time.sleep(0.01)  # 控制点击频率
-            if time.time() - start_time > args.finish_time:
-                break
-    except KeyboardInterrupt:
-        print("Stopped pressing down key.")
-
 def findModels(driver, datalist):
     # 查找所有模型链接
     try:
         models = driver.find_elements(By.CSS_SELECTOR, 'a[href^="https://sketchfab.com/3d-models/"][href$="#download"]')
+        new_urls = []
         for model in models:
             model_url = model.get_attribute('href')
             if model_url:
                 model_url = model_url.split("#")[0]  # 去除 #download 部分
-                # print(f"Found model URL: {model_url}")
-                datalist.append(model_url)
-        print(f"Found {len(models)} models")
-        return datalist
+                if model_url not in datalist:  # 避免重复添加
+                    datalist.append(model_url)
+                    new_urls.append(model_url)
+        return new_urls
         
     except Exception as e:
         print(f"Error while fetching models: {e}")
-
+        return []
 
 def getData(args):
-    datalist = []  # 用来存储爬取的网页信息
-
-    # 设置 Chrome 选项
-    chrome_options = Options()
+    datalist = []
+    # 设置 Edge 选项
+    edge_options = Options()
     if args.headless:
-        chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
+        edge_options.add_argument("--headless")
+    edge_options.add_argument("--disable-gpu")
+    edge_options.add_argument("--no-sandbox")
+    
+    # 设置用户代理
+    caps = DesiredCapabilities().EDGE
+    caps["pageLoadStrategy"] = "normal"
+    caps["phantomjs.page.settings.userAgent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
 
-    # 设置 ChromeDriver 路径
-    service = Service(args.chromedriver)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    # 设置 EdgeDriver 路径
+    service = Service(args.edgedriver)
+    driver = webdriver.Edge(service=service, options=edge_options)
 
+    # 打开网页
     driver.get(args.baseurl)
-    time.sleep(random.uniform(1, 3))  # 随机等待，确保页面加载完成
+    time.sleep(2)  
 
     # 选择 Accept All
     selectAcceptAll(driver)
+    time.sleep(1)
+    
+    try:
+        button = driver.find_element(By.XPATH, '//*[@id="root"]/header/div/div/a[1]/span')
+        driver.execute_script("arguments[0].click();", button)
+        time.sleep(1)
+        name_input = driver.find_element(By.CSS_SELECTOR, 'input[type="email"]')
+        password_input = driver.find_element(By.CSS_SELECTOR, 'input[type="password"]')
 
-    # 持续按下键
-    pressDownKey(driver, args)
+        name_input.send_keys(EMAIL)
+        time.sleep(1)
+        password_input.send_keys(PASSWORD)
 
-    # 查找所有模型链接
-    datalist = findModels(driver, datalist)
+        button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="submit-button"]')
+        while True:
+            driver.execute_script("arguments[0].click();", button)
+            time.sleep(2)
+
+            # 检查是否登录成功
+            cookies = driver.get_cookies()
+            if len(cookies) == 3:
+                print("Login successful")
+                break
+    except Exception as e:
+        print(f"Error during login: {e}")
+        return datalist
+
+    # 打开文件以追加模式写入
+    with open("C:/Users/Administrator/Desktop/py/3D/Machine-Learning-Project/crawler/sketchfab/urls.txt", "a") as f:
+        # 滚动页面以触发懒加载，确保获取所有图片链接
+        scroll_increment = 400
+        num_downloads = 0
+        while num_downloads <= 12000:
+            # 滚动到页面底部
+            while True:
+                scrollTop = driver.execute_script("return document.documentElement.scrollTop || document.body.scrollTop")
+                driver.execute_script(f"window.scrollBy(0, {scroll_increment})")
+                time.sleep(0.5)  # 随机等待，模拟人类行为
+                new_scrollTop = driver.execute_script("return document.documentElement.scrollTop || document.body.scrollTop")
+                if new_scrollTop == scrollTop:
+                    break
+            
+            new_urls = findModels(driver, datalist)
+            # 将新添加的URL写入文件
+            for url in new_urls:
+                f.write(url + "\n")
+            
+            # 回滚一步找到 "LOAD MORE" 按钮并点击
+            driver.execute_script(f"window.scrollBy(0, -{scroll_increment})")
+            try:
+                load_more_button = driver.find_element(By.CSS_SELECTOR, 'button.btn-primary.btn-large')
+                driver.execute_script("arguments[0].click();", load_more_button)
+                time.sleep(3)  # 等待新内容加载
+            except:
+                pass
 
     driver.quit()
+
     return datalist
 
 def main(args):
     datalist = getData(args)
     # 将所有爬取的网页信息写入文件urls.txt
-    with open("crawler/sketchfab/urls.txt", "w") as f:
-        for data in datalist:
-            f.write(data + "\n")
+    # with open("C:/Users/Administrator/Desktop/py/3D/Machine-Learning-Project/crawler/sketchfab/urls.txt", "a") as f:
+    #     for data in datalist:
+    #         f.write(data + "\n")
 
 def get_args(parser: argparse.ArgumentParser):
+
     # 要爬取的网页链接
     parser.add_argument("--baseurl", default="https://sketchfab.com/3d-models/categories/architecture?features=downloadable&sort_by=-likeCount", type=str, help="The URL to crawl")
-    # 设置 ChromeDriver 路径
-    parser.add_argument("--chromedriver", default="C:/Program Files/Google/Chrome/Application/chromedriver.exe", type=str, help="The path to ChromeDriver")
+    # 设置 EdgeDriver 路径
+    parser.add_argument("--edgedriver", default="D:\edgedriver_win64\msedgedriver.exe", type=str, help="The path to EdgeDriver")
     # 是否使用无头模式，即不打开浏览器界面
     parser.add_argument("--headless", default=False, type=bool, help="Whether to use headless mode")
     # 持续按下键的时间
