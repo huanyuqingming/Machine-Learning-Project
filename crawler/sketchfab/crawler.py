@@ -10,8 +10,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 import warnings
+import re
 warnings.filterwarnings("ignore")
 
 from my_account import EMAIL, PASSWORD
@@ -33,44 +36,56 @@ def unzip_to_same_named_folder(zip_path):
         # 解压到目标文件夹
         zip_ref.extractall(dest_folder_path)
 
-def is_download_complete(download_dir):
-    # 轮询下载目录，直到没有.crdownload文件
+def is_download_complete(download_dir, initial_glb_count):
+    # 查看下载目录中 .glb 文件的个数是否增加
     while True:
-        files = os.listdir(download_dir)
-        if any(file.endswith(".crdownload") for file in files):
+        current_glb_count = len([file for file in os.listdir(download_dir) if file.endswith(".glb")])
+        if current_glb_count > initial_glb_count:
+            print("下载完成")
+            break
+        else:
             print("下载进行中...")
             time.sleep(1)
-        else:
-            print("下载完成！")
-            break
+    return current_glb_count
+
+def load_downloaded_urls(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            return set(file.read().splitlines())
+    return set()
+
+def save_downloaded_url(file_path, url):
+    with open(file_path, 'a') as file:
+        file.write(url + '\n')
 
 if __name__ == "__main__":
+    # 自己设置1-13
+    num=1
     # 下载路径
-    download_dir = "E:/3Dmodels"   # 替换为本地Edge默认下载路径
+    download_dir = "C:/Users/Administrator/Downloads"   # 替换为本地Edge默认下载路径
     os.makedirs(download_dir, exist_ok=True)
-    # final_dir = "crawler/sketchfab/data"
-    # os.makedirs(final_dir, exist_ok=True)
+    downloaded_urls_file = "C:/Users/Administrator/Desktop/py/3D/Machine-Learning-Project/crawler/sketchfab/downloaded_urls_"+str(num)+".txt"
 
-    # 选择urls.txt文件中的每个url作为page的值
-    with open("C:/Users/Administrator/Desktop/py/3D/Machine-Learning-Project/crawler/sketchfab/urls.txt", "r") as f:
+    # 选择对应num的URL文件
+    with open("C:/Users/Administrator/Desktop/py/3D/Machine-Learning-Project/crawler/sketchfab/urls_part_"+str(num)+".txt", 'r') as f:
         urls = f.readlines()
+
+    # 加载已下载的URL
+    downloaded_urls = load_downloaded_urls(downloaded_urls_file)
 
     # 获得一个 Edge driver
     edge_options = Options()
-    edge_options.add_experimental_option("prefs", {
-        "download.default_directory": download_dir,
-        "download.prompt_for_download": False,  # 禁止下载弹窗
-        "download.directory_upgrade": True,     # 在下载时升级目录
-        "safebrowsing.enabled": True            # 禁用安全浏览保护，以避免干扰下载
-    })
+    # edge_options.add_argument("--headless")
+    edge_options.add_argument("--disable-gpu")
+    edge_options.add_argument("--no-sandbox")
+
     # 设置用户代理
     caps = DesiredCapabilities().EDGE
     caps["pageLoadStrategy"] = "normal"
     caps["phantomjs.page.settings.userAgent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
 
-    service = Service("D:\edgedriver_win64\msedgedriver.exe")
+    service = Service("D:/edgedriver_win64/msedgedriver.exe")
     driver = webdriver.Edge(service=service, options=edge_options)
-    # driver.maximize_window()
 
     # 打开第一个 URL 并登录
     first_page = urls[0].strip()
@@ -79,74 +94,105 @@ if __name__ == "__main__":
     driver.execute_script("arguments[0].click();", button)
     time.sleep(1)
 
-    # 点击 Download 3D Model 按钮
-    button = driver.find_element(By.CSS_SELECTOR, 'button[title="Download Free 3D Model"]')
-    driver.execute_script("arguments[0].click();", button)
-    time.sleep(1)
-
-    # 尝试登录
     try:
+        button = driver.find_element(By.XPATH, '//*[@id="root"]/header/div/div/a[1]/span')
+        driver.execute_script("arguments[0].click();", button)
+        time.sleep(0.5)
         name_input = driver.find_element(By.CSS_SELECTOR, 'input[type="email"]')
         password_input = driver.find_element(By.CSS_SELECTOR, 'input[type="password"]')
 
         name_input.send_keys(EMAIL)
+        time.sleep(1)
         password_input.send_keys(PASSWORD)
 
         button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="submit-button"]')
-        driver.execute_script("arguments[0].click();", button)
-        time.sleep(2)
+        while True:
+            driver.execute_script("arguments[0].click();", button)
+            time.sleep(2)
+
+            # 检查是否登录成功
+            cookies = driver.get_cookies()
+            if len(cookies) == 5:
+                print("Login successful")
+                break
     except Exception as e:
         print(f"Error during login: {e}")
 
+    driver.refresh()
+    time.sleep(1)
+
+    # 记录初始的 .glb 文件个数
+    initial_glb_count = len([file for file in os.listdir(download_dir) if file.endswith(".glb")])
+
     # 下载第一个 URL 的模型
-    try:
-        # 向下滚动400像素
-        driver.execute_script("window.scrollBy(0,400)")
-        time.sleep(1)
-        button = driver.find_element(By.XPATH, '//*[@id="root"]/main/section/div/div[1]/div/div[2]/div/div[1]/div[3]/div/button[1]/span[2]')
-        driver.execute_script("arguments[0].click();", button)
-        time.sleep(1)
-    except Exception as e:
-        print(f"Error while downloading the first model: {e}")
-
-    is_download_complete(download_dir)
-
-    # 下载后续 URL 的模型
-    for url in urls[1:]:
-        page = url.strip()
-        print(f"Downloading {page}...")
-
-        # 访问目标网站
-        driver.get(page)
-        time.sleep(1)
-
-        # 点击 Download 3D Model 按钮
+    if first_page not in downloaded_urls:
         try:
-            button = driver.find_element(By.CSS_SELECTOR, 'button[title="Download Free 3D Model"]')
-            driver.execute_script("arguments[0].click();", button)
-            time.sleep(1)
-
             # 向下滚动400像素
             driver.execute_script("window.scrollBy(0,400)")
             time.sleep(1)
             button = driver.find_element(By.XPATH, '//*[@id="root"]/main/section/div/div[1]/div/div[2]/div/div[1]/div[3]/div/button[1]/span[2]')
             driver.execute_script("arguments[0].click();", button)
             time.sleep(1)
+            # 等待弹窗出现
+            wait = WebDriverWait(driver, 10)
+            popup = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'c-popup__content')))
+                    
+            # 点击弹窗内部的空白区域
+            driver.execute_script("arguments[0].click();", popup)
+                    
+            # 滚动弹窗以加载出下载按钮
+            driver.execute_script("arguments[0].scrollBy(0, 400);", popup)
+            buttons = driver.find_elements(By.CLASS_NAME, 'button.btn-primary.btn-small.button-extra')
+            EC.element_to_be_clickable(buttons[3])
+            buttons[3].click()
+            time.sleep(5)
         except Exception as e:
-            print(f"Error while downloading the model: {e}")
+            print(f"Error while downloading the first model: {e}")
 
-        is_download_complete(download_dir)
+        initial_glb_count=is_download_complete(download_dir, initial_glb_count)
+        save_downloaded_url(downloaded_urls_file, first_page)
+    else:
+        print(f"URL {first_page} 已下载过，跳过")
+
+    # 下载后续 URL 的模型
+    for url in urls[1:]:
+        page = url.strip()
+
+        if page not in downloaded_urls:
+            # 访问目标网站
+            driver.get(page)
+            time.sleep(1)
+
+            # 点击 Download 3D Model 按钮
+            try:
+                # 向下滚动400像素
+                driver.execute_script("window.scrollBy(0,400)")
+                time.sleep(1)
+                button = driver.find_element(By.XPATH, '//*[@id="root"]/main/section/div/div[1]/div/div[2]/div/div[1]/div[3]/div/button[1]/span[2]')
+                driver.execute_script("arguments[0].click();", button)
+                time.sleep(1)
+                # 等待弹窗出现
+                wait = WebDriverWait(driver, 10)
+                popup = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'c-popup__content')))
+                        
+                # 点击弹窗内部的空白区域
+                driver.execute_script("arguments[0].click();", popup)
+                        
+                # 滚动弹窗以加载出下载按钮
+                driver.execute_script("arguments[0].scrollBy(0, 400);", popup)
+                buttons = driver.find_elements(By.CLASS_NAME, 'button.btn-primary.btn-small.button-extra')
+                EC.element_to_be_clickable(buttons[3])
+                buttons[3].click()
+                time.sleep(5)
+            except Exception as e:
+                print(f"Error while downloading the model from {url}: {e}")
+
+            initial_glb_count=is_download_complete(download_dir, initial_glb_count)
+            save_downloaded_url(downloaded_urls_file, page)
+        else:
+            print(f"URL {page} 已下载过，跳过")
 
     # 关闭 driver
     driver.quit()
 
-    # # 将文件移动至本目录
-    # files = os.listdir(download_dir)
-    # for file in files:
-    #     if file.endswith(".zip"):
-    #         shutil.move(os.path.join(download_dir, file), os.path.join(final_dir, file))
-
-    # # 将文件解压到同名文件夹
-    # for file in os.listdir(final_dir):
-    #     if file.endswith(".zip"):
-    #         unzip_to_same_named_folder(os.path.join(final_dir, file))
+    
