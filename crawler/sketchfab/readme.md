@@ -25,10 +25,15 @@
 
 # 如何筛选
 
-1. 修改selector的edgedriver路径
+1. 修改`selector.py`的edgedriver路径
 2. 运行程序，y保留n舍去，不用按enter确认
 
 # 如何下载
-1. 修改`cwarler.py`中`get_args()`的参数
-2. 保证`data`文件夹中没有`.crdownload`文件
-3. 狠狠地运行
+1. 检查是否有`my_account.py`，文件内容为：
+    ```
+    EMAIL = "your_email_address"
+    PASSWORD = "your_password"
+    ```
+2. 修改`cwarler.py`中`get_args()`的参数
+3. 保证`data`文件夹中没有`.crdownload`文件
+4. 狠狠地运行
