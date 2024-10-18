@@ -174,12 +174,6 @@ def main(args):
     # 关闭 driver
     driver.quit()
 
-    # 解压所有下载的ZIP文件
-    zip_files = [file for file in os.listdir(download_dir) if file.endswith(".zip")]
-    for zip_file in zip_files:
-        zip_path = os.path.join(download_dir, zip_file)
-        unzip_to_same_named_folder(zip_path)
-
 # 在这里改参数
 def get_args(parser: argparse.ArgumentParser):
     parser.add_argument('--download_dir', type=str, default=r"D:\Machine Learning Project\crawler\sketchfab\data", help="下载路径")
