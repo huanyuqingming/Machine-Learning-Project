@@ -4,3 +4,18 @@ crawler/sketchfab/__pycache__/*.pyc
 crawler/sketchfab/data/
 
 crawler/sketchfab/my_account.py
+crawler/sketchfab/downloaded_urls.txt
+crawler/sketchfab/ordered_files.txt
+crawler/sketchfab/filtered_urls_part_1.txt
+crawler/sketchfab/filtered_urls_part_2.txt
+crawler/sketchfab/filtered_urls_part_3.txt
+crawler/sketchfab/filtered_urls_part_4.txt
+crawler/sketchfab/filtered_urls_part_5.txt
+crawler/sketchfab/filtered_urls_part_6.txt
+crawler/sketchfab/filtered_urls_part_7.txt
+crawler/sketchfab/filtered_urls_part_8.txt
+crawler/sketchfab/filtered_urls_part_9.txt
+crawler/sketchfab/filtered_urls_part_10.txt
+crawler/sketchfab/filtered_urls_part_11.txt
+crawler/sketchfab/filtered_urls_part_12.txt
+crawler/sketchfab/filtered_urls_part_13.txt
