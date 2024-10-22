@@ -7,6 +7,8 @@
 - chromedriver.exe / edgedriver.exe
 - keyboard
 - tqdm
+- transformer
+- sentencepiece
 反正没有的库装就好了
 
 #### 必要操作
@@ -37,3 +39,7 @@
 2. 修改`cwarler.py`中`get_args()`的参数
 3. 保证`data`文件夹中没有`.crdownload`文件
 4. 狠狠地运行
+
+# 如何添加描述
+1. 确保此前下载在`data`文件夹中的`.glb`文件的修改日期顺序与`downloaded_urls.txt`中的顺序一致
+2. 运行`get_description.py`
